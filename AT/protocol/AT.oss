@@ -1,0 +1,46 @@
+COMPONENT RG
+    INTERFACE
+        INPUT PORT to : event ;
+        OUTPUT PORT to_d : event ;
+        INPUT PORT rt_d : event ;
+        OUTPUT PORT rt : event ;
+        CONTRACT C_RG
+            assume :
+                always(to implies then(not to until to_d)) and 
+                always(rt implies in the future rt_d) and 
+                always(rt_d implies previously(not rt_d since rt)) ;
+            guarantee : 
+                always(to implies in the future rt) and always(rt implies previously(not rt since to)) and 
+                always(rt_d implies in the future to_d) and always(to_d implies previously(not to_d since rt_d));
+                
+COMPONENT TTES
+    INTERFACE
+        INPUT PORT rt : event ;
+        OUTPUT PORT rt_d : event ;
+        CONTRACT C_TTES
+            assume :
+                -- always(rt implies then(not rt until rt_d)) ;
+                TRUE ;
+            guarantee : 
+                always(rt implies in the future rt_d) and always(rt_d implies previously(not rt_d since rt)) ;
+
+
+COMPONENT AutoTaxi system
+    INTERFACE
+        INPUT PORT to : event ;
+        OUTPUT PORT to_d : event ;
+        CONTRACT C_AutoTaxi
+            assume:
+                always(to implies then(not to until to_d)) ;
+            guarantee: 
+                always(to implies in the future to_d);
+        REFINEMENT
+            SUB rg : RG;
+            SUB ttes : TTES ;
+            CONNECTION rg.to := to ;
+            CONNECTION to_d := rg.to_d ;
+            CONNECTION ttes.rt := rg.rt ;
+            CONNECTION rg.rt_d := ttes.rt_d ;
+            CONTRACT C_AutoTaxi REFINEDBY 
+                        rg.C_RG,
+                        ttes.C_TTES;
