@@ -1,0 +1,66 @@
+-- NEED TO DEFINE TTES, RG, TES, VEE, 
+
+COMPONENT TES
+    INTERFACE
+        INPUT PORT trj : event ;
+        OUTPUT PORT trj_d : event ;
+        CONTRACT C_TES
+            assume :
+                TRUE ;
+            guarantee : 
+                always(trj implies in the future trj_d) and always(trj_d implies previously(not trj_d since trj)) ;
+
+COMPONENT TG
+    INTERFACE
+        INPUT PORT i : event ;
+        OUTPUT PORT o : event ;
+        INPUT PORT res : event ;
+        INPUT PORT trj_d : event ;
+        OUTPUT PORT trj : event ;
+        CONTRACT C_TG
+            assume :
+                always(trj implies in the future trj_d) ;
+            guarantee : 
+                always(i implies in the future trj) and always(trj implies previously(not trj since i)) and 
+                always(trj_d implies in the future o) and always(o implies previously(not o since res));
+
+COMPONENT VEE
+    INTERFACE
+        INPUT PORT i1 : event ;
+        INPUT PORT i2 : event ;
+        OUTPUT PORT o : event ;
+        CONTRACT C_VEE
+            assume : TRUE ;
+            guarantee : G(o = i1 or i2) ;
+
+
+COMPONENT TTES0 system
+    INTERFACE
+        INPUT PORT rt : event ;
+        OUTPUT PORT rt_d : event ;
+        INPUT PORT trj : event ;
+        OUTPUT PORT trj_d : event ;
+        CONTRACT C_TTES
+            assume :
+                -- always(rt implies then(not rt until rt_d)) ;
+                TRUE ;
+            guarantee : 
+                always(rt implies in the future rt_d) and always(rt_d implies previously(not rt_d since rt)) and
+                always(trj implies in the future trj_d) and always(trj_d implies previously(not trj_d since trj)) ;
+        REFINEMENT
+            SUB tg : TG ;
+            SUB tes : TES ;
+            SUB vee : VEE ;
+            CONNECTION tg.i := rt ;
+            CONNECTION rt_d := tg.o ;
+            CONNECTION vee.i1 := tg.trj ;
+            CONNECTION vee.i2 := trj ;
+            CONNECTION tes.trj := vee.o ;
+            CONNECTION tg.trj_d := tes.trj_d ;
+            CONNECTION tg.res := tg.o ;
+            CONTRACT C_TTES REFINEDBY
+                tg.C_TG,
+                tes.C_TES,
+                vee.C_VEE ;
+
+
